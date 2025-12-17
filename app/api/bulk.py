@@ -6,6 +6,7 @@ from app.storage.batch_store import save_batch, get_batch
 
 router = APIRouter()
 
+
 @router.post("/hospitals/bulk")
 def bulk_upload(file: UploadFile = File(...)):
     try:
@@ -13,7 +14,6 @@ def bulk_upload(file: UploadFile = File(...)):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-    # lazy imports (critical)
     from app.models.batch import Batch
     from app.services.hospital_client import HospitalClient
 
@@ -32,7 +32,11 @@ def bulk_upload(file: UploadFile = File(...)):
         }
 
         try:
-            result = client.create_hospital(payload)
+            try:
+                result = client.create_hospital(payload)
+            except Exception:
+                result = client.create_hospital(payload)
+
             batch.processed += 1
             batch.results.append({
                 "row": idx,
@@ -40,6 +44,7 @@ def bulk_upload(file: UploadFile = File(...)):
                 "name": result["name"],
                 "status": "created"
             })
+
         except Exception as exc:
             batch.failed += 1
             batch.results.append({
